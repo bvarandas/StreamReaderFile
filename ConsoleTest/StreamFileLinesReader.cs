@@ -14,12 +14,12 @@ namespace ConsoleTest
         private long _actualPage = 0;
         private int _incremental = 5;
         private int _pagination = 10;
-        //private string fileName;
         private StreamReader _streamFile;
         private int numberLinesBuffer = 100;
         private long LastPosition = 0;
-        private long AverageBytesLine = 0;
-        private long SumBytesLine = 0;
+        private long _averageBytesLine = 0;
+        private long _sumBytesLine = 0;
+        private string _fileName = string.Empty;
 
         public StreamFileLinesReader(string fileName)
         {
@@ -27,18 +27,25 @@ namespace ConsoleTest
 
             _streamFile = new StreamReader(fileName);
 
+            _fileName = fileName;
+
             while (_streamFile.Peek() >= 0 && i < numberLinesBuffer)
             {
                 string line = _streamFile.ReadLine();
                 _lines.Add(i, line);
-                int byteSize = System.Text.ASCIIEncoding.ASCII.GetByteCount(line);
-                SumBytesLine += byteSize;
-                AverageBytesLine = SumBytesLine / (i + 1);
+                this.CalculateAverageBytesLine(line, i);
                 i++;
             }
 
             LastPosition = _streamFile.BaseStream.Position;
 
+        }
+
+        private void CalculateAverageBytesLine(string line, long cont)
+        {
+            int byteSize = System.Text.ASCIIEncoding.ASCII.GetByteCount(line);
+            _sumBytesLine += byteSize;
+            _averageBytesLine = _sumBytesLine / (cont + 1);
         }
 
 
@@ -48,9 +55,13 @@ namespace ConsoleTest
 
             try
             {
-                long seek = (AverageBytesLine * (line - 1));
+                long seek = (_averageBytesLine * (line - 1));
 
                 _lines.Clear();
+
+                
+                    //_streamFile.BaseStream.Seek(0, SeekOrigin.Begin);
+
                 _streamFile.BaseStream.Seek(seek, SeekOrigin.Current);
                 long cont = 0;
 
@@ -69,6 +80,8 @@ namespace ConsoleTest
                 if (cont < line)
                 {
                     ret.Append($"O arquivo não contem a linha {line}");
+                    _streamFile.Close();
+                    _streamFile = new StreamReader(_fileName);
                     return ret ;
                 }
 
@@ -78,10 +91,12 @@ namespace ConsoleTest
                 _actualPage = line;
                 for (long i = (_actualPageLine-_incremental); i <= (_actualPageLine + _incremental); i++)
                 {
-                    string linhaLida = string.Empty;
-                    if (_lines.TryGetValue(i, out linhaLida))
+                    string lineRead= string.Empty;
+                    if (_lines.TryGetValue(i, out lineRead))
                     {
-                        ret.Append(i + " - " + linhaLida + "\n");
+                        ret.Append(i + " - " + lineRead + "\n");
+
+                        CalculateAverageBytesLine(lineRead, i);
                     }
                 }
             }
