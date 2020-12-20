@@ -1,0 +1,14 @@
+C:\Users\bvarandas\source\repos\ConsoleTest\ConsoleTest\bin\Debug\ConsoleTest.exe.config
+C:\Users\bvarandas\source\repos\ConsoleTest\ConsoleTest\bin\Debug\ConsoleTest.exe
+C:\Users\bvarandas\source\repos\ConsoleTest\ConsoleTest\bin\Debug\ConsoleTest.pdb
+C:\Users\bvarandas\source\repos\ConsoleTest\ConsoleTest\obj\Debug\ConsoleTest.csprojAssemblyReference.cache
+C:\Users\bvarandas\source\repos\ConsoleTest\ConsoleTest\obj\Debug\ConsoleTest.csproj.CoreCompileInputs.cache
+C:\Users\bvarandas\source\repos\ConsoleTest\ConsoleTest\obj\Debug\ConsoleTest.exe
+C:\Users\bvarandas\source\repos\ConsoleTest\ConsoleTest\obj\Debug\ConsoleTest.pdb
+C:\Users\bvarandas\source\repos\StreamReaderFile\StreamReaderFile\ConsoleTest\bin\Debug\ConsoleTest.exe.config
+C:\Users\bvarandas\source\repos\StreamReaderFile\StreamReaderFile\ConsoleTest\bin\Debug\ConsoleTest.exe
+C:\Users\bvarandas\source\repos\StreamReaderFile\StreamReaderFile\ConsoleTest\bin\Debug\ConsoleTest.pdb
+C:\Users\bvarandas\source\repos\StreamReaderFile\StreamReaderFile\ConsoleTest\obj\Debug\ConsoleTest.csprojAssemblyReference.cache
+C:\Users\bvarandas\source\repos\StreamReaderFile\StreamReaderFile\ConsoleTest\obj\Debug\ConsoleTest.csproj.CoreCompileInputs.cache
+C:\Users\bvarandas\source\repos\StreamReaderFile\StreamReaderFile\ConsoleTest\obj\Debug\ConsoleTest.exe
+C:\Users\bvarandas\source\repos\StreamReaderFile\StreamReaderFile\ConsoleTest\obj\Debug\ConsoleTest.pdb
