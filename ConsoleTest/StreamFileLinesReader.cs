@@ -4,17 +4,20 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using System.Threading;
 
 namespace ConsoleTest
 {
     public class StreamFileLinesReader :IDisposable
     {
         private SortedDictionary<long, string> _lines = new SortedDictionary<long, string>();
+        private ConcurrentDictionary<long, long> _linesPosition = new ConcurrentDictionary<long, long>();
         private long _actualPageLine = 5;
         private long _actualPage = 0;
         private int _incremental = 5;
         private int _pagination = 10;
-        private StreamReader _streamFile;
+        private myStreamReader _streamFile;
         private int numberLinesBuffer = 100;
         private long LastPosition = 0;
         private long _averageBytesLine = 0;
@@ -25,9 +28,11 @@ namespace ConsoleTest
         {
             long i = 0;
 
-            _streamFile = new StreamReader(fileName);
+            _streamFile = new myStreamReader(fileName);
 
             _fileName = fileName;
+
+            Task.Run(() => ThreadReadingFile(fileName));
 
             while (_streamFile.Peek() >= 0 && i < numberLinesBuffer)
             {
@@ -38,7 +43,36 @@ namespace ConsoleTest
             }
 
             LastPosition = _streamFile.BaseStream.Position;
+        }
 
+        public long GetLinePosition(long line)
+        {
+            long position = -1;
+
+            _linesPosition.TryGetValue(line, out position);
+
+            return position;
+        }
+
+        private void ThreadReadingFile(string fileName)
+        {
+            long cont = 1;
+            long byteSize = 0;
+            var spin = new SpinWait();
+            using (myStreamReader reader = new myStreamReader(fileName))
+            {
+                while (reader.Peek() >= 0)
+                {
+                    string line = reader.ReadLine();
+                    byteSize = reader.BytesRead; //byteSize + System.Text.UTF8Encoding.UTF8.GetByteCount(line);
+                    _linesPosition.TryAdd(cont, byteSize);
+                    cont++;
+                    //if ((cont % 1000)==0)
+                    spin.SpinOnce();
+                    //Thread.Sleep(1);
+
+                }
+            }
         }
 
         private void CalculateAverageBytesLine(string line, long cont)
@@ -55,33 +89,49 @@ namespace ConsoleTest
 
             try
             {
-                long seek = (_averageBytesLine * (line - 1));
+                long seek = ((_averageBytesLine ) * (line - 1));
 
                 _lines.Clear();
-
                 
-                    //_streamFile.BaseStream.Seek(0, SeekOrigin.Begin);
+                long seekPosition = GetLinePosition(line- (numberLinesBuffer / 2));
+                if (seekPosition == -1)
+                {
+                    _streamFile.DiscardBufferedData();
+                    _streamFile.BaseStream.Seek(0, SeekOrigin.Begin);
 
-                _streamFile.BaseStream.Seek(seek, SeekOrigin.Current);
+                }
+                else
+                {
+                    _streamFile.DiscardBufferedData();
+                    _streamFile.BaseStream.Seek(seekPosition, SeekOrigin.Begin);
+                }              
+
                 long cont = 0;
 
-                long total = line + numberLinesBuffer;
-                long initial = line - numberLinesBuffer;
+                long total = line + (numberLinesBuffer/2);
+                long initial = line - (numberLinesBuffer/2);
 
-                while (_streamFile.Peek() >= 0 && cont < total)
+                string lineRead = string.Empty;
+                while (_streamFile.Peek() >=0 && cont <= line + (numberLinesBuffer / 2))
                 {
-                    string lineRead = _streamFile.ReadLine();
-
-                    if (cont >= initial) _lines.Add(cont, lineRead);
-
+                    lineRead = _streamFile.ReadLine();
+                    if (seekPosition == -1)
+                    {
+                        if (cont >= initial)
+                            _lines.Add(cont, lineRead);
+                    }else
+                        _lines.Add(cont, lineRead);
                     cont++;
                 }
 
+                //if (_streamFile.BaseStream.)
                 if (cont < line)
                 {
-                    ret.Append($"O arquivo não contem a linha {line}");
+                    if (cont < line)
+                        ret.Append($"O arquivo não contem a linha {line}");
+
                     _streamFile.Close();
-                    _streamFile = new StreamReader(_fileName);
+                    _streamFile = new myStreamReader(_fileName);
                     return ret ;
                 }
 
@@ -91,12 +141,12 @@ namespace ConsoleTest
                 _actualPage = line;
                 for (long i = (_actualPageLine-_incremental); i <= (_actualPageLine + _incremental); i++)
                 {
-                    string lineRead= string.Empty;
-                    if (_lines.TryGetValue(i, out lineRead))
+                    string pagelineRead= string.Empty;
+                    if (_lines.TryGetValue(i, out pagelineRead))
                     {
-                        ret.Append(i + " - " + lineRead + "\n");
+                        ret.Append(pagelineRead + "\n");
 
-                        CalculateAverageBytesLine(lineRead, i);
+                        CalculateAverageBytesLine(pagelineRead, i);
                     }
                 }
             }
@@ -161,7 +211,7 @@ namespace ConsoleTest
                     string linhaLida = string.Empty;
                     if (_lines.TryGetValue(line, out linhaLida))
                     {
-                        ret.Append(line + " - " + linhaLida + "\n");
+                        ret.Append( linhaLida + "\n");
                     }
                 }
 
@@ -176,7 +226,7 @@ namespace ConsoleTest
                         string linhaLida = string.Empty;
                         if (_lines.TryGetValue(line, out linhaLida))
                         {
-                            ret.Append(line + " - " + linhaLida + "\n");
+                            ret.Append( linhaLida + "\n");
                         }
                     }
                 }

@@ -11,9 +11,10 @@ namespace ConsoleTest
     class Program
     {
         static StreamFileLinesReader Reader = null;
-
+        
         static void Main(string[] args)
         {
+            
             string fileName = string.Empty;
 
             var lines = new StringBuilder();
