@@ -6,9 +6,18 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Diagnostics;
+using System.IO.MemoryMappedFiles;
+using ConsoleTest.Indexing;
 
 namespace ConsoleTest
 {
+    internal sealed class IndexPosition
+    {
+        public long Line;
+        public long Position;
+    }
+
     public class StreamFileLinesReader :IDisposable
     {
         private SortedDictionary<long, string> _lines = new SortedDictionary<long, string>();
@@ -20,9 +29,10 @@ namespace ConsoleTest
         private myStreamReader _streamFile;
         private int numberLinesBuffer = 100;
         private long LastPosition = 0;
-        private long _averageBytesLine = 0;
-        private long _sumBytesLine = 0;
         private string _fileName = string.Empty;
+        private Indexer<IndexPosition> _indexer = null;
+        private IEqualityIndex<long, IndexPosition> _linePos;
+
 
         public StreamFileLinesReader(string fileName)
         {
@@ -38,7 +48,6 @@ namespace ConsoleTest
             {
                 string line = _streamFile.ReadLine();
                 _lines.Add(i, line);
-                this.CalculateAverageBytesLine(line, i);
                 i++;
             }
 
@@ -49,7 +58,18 @@ namespace ConsoleTest
         {
             long position = -1;
 
-            _linesPosition.TryGetValue(line, out position);
+            if (_linePos is null)
+            {
+
+            }
+            else
+            {
+                //_linesPosition.TryGetValue(line, out position);
+                var itens = _linePos.EnumerateItems(line);
+
+                foreach (var item in itens)
+                    position = item.Position;
+            }
 
             return position;
         }
@@ -59,28 +79,40 @@ namespace ConsoleTest
             long cont = 1;
             long byteSize = 0;
             var spin = new SpinWait();
-            using (myStreamReader reader = new myStreamReader(fileName))
-            {
-                while (reader.Peek() >= 0)
-                {
-                    string line = reader.ReadLine();
-                    byteSize = reader.BytesRead; //byteSize + System.Text.UTF8Encoding.UTF8.GetByteCount(line);
-                    _linesPosition.TryAdd(cont, byteSize);
-                    cont++;
-                    //if ((cont % 1000)==0)
-                    spin.SpinOnce();
-                    //Thread.Sleep(1);
 
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            _indexer = new Indexer<IndexPosition>();
+            
+            using (var fs = File.OpenRead(fileName))
+            using (myStreamReader reader = new myStreamReader(fs))
+            {
+                using (var transaction = _indexer.StartTransaction())
+                {
+                    while (reader.Peek() >= 0)
+                    {
+                        string line = reader.ReadLine();
+                        byteSize = reader.BytesRead;
+                        //_linesPosition.TryAdd(cont, byteSize);
+                        transaction.Add(new IndexPosition { Line = cont, Position = byteSize });
+                        cont++;
+                        //if ((cont % 1000)==0)
+                        //spin.SpinOnce();
+                        //Thread.Sleep(1);
+
+                    }
+
+                    transaction.Commit();
+
+                    _linePos = _indexer.AddEqualityIndex("Line", (x) => x.Line);
                 }
             }
+            
+            stopwatch.Stop();
+            //TestMemoryMappedFile(fileName);
         }
 
-        private void CalculateAverageBytesLine(string line, long cont)
-        {
-            int byteSize = System.Text.ASCIIEncoding.ASCII.GetByteCount(line);
-            _sumBytesLine += byteSize;
-            _averageBytesLine = _sumBytesLine / (cont + 1);
-        }
 
 
         public StringBuilder GetLinesSearch(long line)
@@ -89,8 +121,6 @@ namespace ConsoleTest
 
             try
             {
-                long seek = ((_averageBytesLine ) * (line - 1));
-
                 _lines.Clear();
                 
                 long seekPosition = GetLinePosition(line- (numberLinesBuffer / 2));
@@ -111,8 +141,12 @@ namespace ConsoleTest
                 long total = line + (numberLinesBuffer/2);
                 long initial = line - (numberLinesBuffer/2);
 
+                if (seekPosition!= -1)
+                    cont = initial;
+
                 string lineRead = string.Empty;
-                while (_streamFile.Peek() >=0 && cont <= line + (numberLinesBuffer / 2))
+
+                while (_streamFile.Peek() >=0 && cont < total)
                 {
                     lineRead = _streamFile.ReadLine();
                     if (seekPosition == -1)
@@ -124,11 +158,9 @@ namespace ConsoleTest
                     cont++;
                 }
 
-                //if (_streamFile.BaseStream.)
-                if (cont < line)
+                if (!_streamFile.BaseStream.CanRead)
                 {
-                    if (cont < line)
-                        ret.Append($"O arquivo não contem a linha {line}");
+                    ret.Append($"O arquivo não contem a linha {line}");
 
                     _streamFile.Close();
                     _streamFile = new myStreamReader(_fileName);
@@ -145,8 +177,6 @@ namespace ConsoleTest
                     if (_lines.TryGetValue(i, out pagelineRead))
                     {
                         ret.Append(pagelineRead + "\n");
-
-                        CalculateAverageBytesLine(pagelineRead, i);
                     }
                 }
             }
@@ -272,6 +302,105 @@ namespace ConsoleTest
                 _streamFile.Dispose();
                 _streamFile = null;
             }
+        }
+
+        private void TestMemoryMappedFile(string fileName)
+        {
+            string filename = fileName;
+            long fileLen = new FileInfo(filename).Length;
+            List<long> badPositions = new List<long>();
+            List<byte> currentLine = new List<byte>();
+            List<string> lines = new List<string>();
+            bool lastReadByteWasLF = false;
+            int linesToRead = 20;
+            int linesRead = 0;
+            long lastBytePos = fileLen;
+
+            MemoryMappedFile mapFile = MemoryMappedFile.CreateFromFile(filename, FileMode.Open);
+
+            using (mapFile)
+            {
+                var view = mapFile.CreateViewAccessor();
+
+                for (long i = fileLen - 1; i >= 0; i--) //iterate backwards
+                {
+
+                    try
+                    {
+                        byte b = view.ReadByte(i);
+                        lastBytePos = i;
+
+                        switch (b)
+                        {
+                            case 13: //CR
+                                if (lastReadByteWasLF)
+                                {
+                                    {
+                                        //A line has been read
+                                        var bArray = currentLine.ToArray();
+                                        if (bArray.LongLength > 1)
+                                        {
+                                            //Add line string to lines collection
+                                            lines.Insert(0, Encoding.UTF8.GetString(bArray, 1, bArray.Length - 1));
+
+                                            //Clear current line list
+                                            currentLine.Clear();
+
+                                            //Add CRLF to currentLine -- comment this out if you don't want CRLFs in lines
+                                            currentLine.Add(13);
+                                            currentLine.Add(10);
+
+                                            linesRead++;
+                                        }
+                                    }
+                                }
+                                lastReadByteWasLF = false;
+
+                                break;
+                            case 10: //LF
+                                lastReadByteWasLF = true;
+                                currentLine.Insert(0, b);
+                                break;
+                            default:
+                                lastReadByteWasLF = false;
+                                currentLine.Insert(0, b);
+                                break;
+                        }
+
+                        if (linesToRead == linesRead)
+                        {
+                            break;
+                        }
+
+
+                    }
+                    catch
+                    {
+                        lastReadByteWasLF = false;
+                        currentLine.Insert(0, (byte)'?');
+                        badPositions.Insert(0, i);
+                    }
+                }
+
+            }
+
+            if (linesToRead > linesRead)
+            {
+                //Read last line
+                {
+                    var bArray = currentLine.ToArray();
+                    if (bArray.LongLength > 1)
+                    {
+                        //Add line string to lines collection
+                        lines.Insert(0, Encoding.UTF8.GetString(bArray));
+                        linesRead++;
+                    }
+                }
+            }
+
+            //Print results
+            lines.ForEach(o => Console.WriteLine(o));
+            Console.ReadKey();
         }
     }
 }

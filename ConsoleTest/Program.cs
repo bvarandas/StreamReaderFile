@@ -11,11 +11,13 @@ namespace ConsoleTest
     class Program
     {
         static StreamFileLinesReader Reader = null;
-        
+        //static StreamWriterFileTest writer = null;
+
         static void Main(string[] args)
         {
-            
             string fileName = string.Empty;
+
+            //writer = new StreamWriterFileTest(fileName);
 
             var lines = new StringBuilder();
 
@@ -76,7 +78,14 @@ namespace ConsoleTest
 
                     var line = Convert.ToInt64(Console.ReadLine());
 
-                    lines = Reader.GetLinesSearch(line);
+                    try
+                    {
+                        lines = Reader.GetLinesSearch(line);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
 
                     Console.WriteLine(lines);
 

@@ -22,6 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -43,15 +44,58 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Collections\AddCollectionSlim.cs" />
+    <Compile Include="Collections\AddCollectionSlimEnumerator.cs" />
+    <Compile Include="Collections\BigArray.cs" />
+    <Compile Include="Collections\BigIndexedReadOnlyCollection.cs" />
+    <Compile Include="Collections\BigList.cs" />
+    <Compile Include="Collections\BitConverterEx.cs" />
+    <Compile Include="Collections\Caching\GCNotifier.cs" />
+    <Compile Include="Collections\Caching\IGarbageCollectionAware.cs" />
+    <Compile Include="Collections\Disposer.cs" />
+    <Compile Include="Collections\EmptyArray.cs" />
+    <Compile Include="Collections\IAdvancedDisposable.cs" />
+    <Compile Include="Collections\InMemoryBigArray.cs" />
+    <Compile Include="Collections\Interfaces\IAdvancedDisposable.cs" />
+    <Compile Include="Collections\Interfaces\IBigIndexedCollection.cs" />
+    <Compile Include="Collections\Interfaces\IBigIndexedReadOnlyCollection.cs" />
+    <Compile Include="Collections\MmfArray.cs" />
+    <Compile Include="Collections\MmfReadDelegate.cs" />
+    <Compile Include="Collections\MmfWriteDelegate.cs" />
+    <Compile Include="Collections\RafArray.cs" />
+    <Compile Include="Collections\RafReadDelegate.cs" />
+    <Compile Include="Collections\RafWriteDelegate.cs" />
+    <Compile Include="Collections\_AddCollectionNode.cs" />
+    <Compile Include="Collections\_BigArrayParallelSort.cs" />
+    <Compile Include="Extensions\IndexerStreamExtensions.cs" />
+    <Compile Include="Indexing\AbstractIndex.cs" />
+    <Compile Include="Indexing\EqualityIndex.cs" />
+    <Compile Include="Indexing\IEqualityIndex.cs" />
+    <Compile Include="Indexing\IIndex.cs" />
+    <Compile Include="Indexing\IIndexer.cs" />
+    <Compile Include="Indexing\IIndexerTransaction.cs" />
+    <Compile Include="Indexing\Indexer.cs" />
+    <Compile Include="Indexing\IndexerTransaction.cs" />
+    <Compile Include="Indexing\IOrderedIndex.cs" />
+    <Compile Include="Indexing\OrderedIndex.cs" />
+    <Compile Include="Indexing\StorageMode.cs" />
+    <Compile Include="Indexing\_IndexerHelper.cs" />
+    <Compile Include="Indexing\_MmfDelegates.cs" />
+    <Compile Include="Indexing\_Node.cs" />
+    <Compile Include="Indexing\_RafDelegates.cs" />
+    <Compile Include="IO\RandomAccessFile.cs" />
+    <Compile Include="IO\_RandomAccessFileBlock.cs" />
     <Compile Include="MyStreamReader.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StreamFileLinesReader.cs" />
     <Compile Include="StreamLineReader.cs" />
-    <Compile Include="StreamWriterFile.cs" />
+    <Compile Include="StreamWriterFileTest.cs" />
+    <Compile Include="Threading\ThreadSafeDisposable.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
