@@ -58,11 +58,7 @@ namespace ConsoleTest
         {
             long position = -1;
 
-            if (_linePos is null)
-            {
-
-            }
-            else
+            if (!(_linePos is null))
             {
                 //_linesPosition.TryGetValue(line, out position);
                 var itens = _linePos.EnumerateItems(line);
